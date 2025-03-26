@@ -424,6 +424,72 @@ void tensor_scalar_multiplication(Tensor* tensor, void* scalar){
     }
 }
 
+void tensor_triu(Tensor* tensor){
+    if(tensor->dim_size != 2){
+        printf("must be a matrice");
+        return;
+    }
+    if(tensor->dim[0] != tensor->dim[1]){
+        printf("must be a square mstrice.");
+        return;
+    }
+
+    int pos = 0;
+    if(tensor->d_type == INT){
+        for(int i = 0; i < tensor->dim[0]; i++){
+            for(int j = 0; j < tensor->dim[1]; j++){
+                if(j > i){
+                    ((int*)tensor->data)[j + pos] = 0;
+                }
+            }
+            pos += tensor->dim[0];
+        }
+    }
+    else if(tensor->d_type == FLOAT){
+        for(int i = 0; i < tensor->dim[0]; i++){
+            for(int j = 0; j < tensor->dim[1]; j++){
+                if(j > i){
+                    ((float*)tensor->data)[j + pos] = 0.0;
+                }
+            }
+            pos += tensor->dim[0];
+        }
+    }
+}
+
+void tensor_tril(Tensor* tensor){
+    if(tensor->dim_size != 2){
+        printf("must be a matrice");
+        return;
+    }
+    if(tensor->dim[0] != tensor->dim[1]){
+        printf("must be a square mstrice.");
+        return;
+    }
+
+    int pos = 0;
+    if(tensor->d_type == INT){
+        for(int i = 0; i < tensor->dim[0]; i++){
+            for(int j = 0; j < tensor->dim[1]; j++){
+                if(j < i){
+                    ((int*)tensor->data)[j + pos] = 0;
+                }
+            }
+            pos += tensor->dim[0];
+        }
+    }
+    else if(tensor->d_type == FLOAT){
+        for(int i = 0; i < tensor->dim[0]; i++){
+            for(int j = 0; j < tensor->dim[1]; j++){
+                if(j < i){
+                    ((float*)tensor->data)[j + pos] = 0.0;
+                }
+            }
+            pos += tensor->dim[0];
+        }
+    }
+}
+
 Tensor* tensor_stack(Tensor** tensors, size_t tensors_quantity){
     for(int i = 0; i<(tensors_quantity-1);i++){
         if(tensor_check_dimension_equality(tensors[i], tensors[i+1]) == 0){
@@ -498,9 +564,9 @@ int view(Tensor* tensor){
 }
 
 int main(){ 
+    /*
     int array[3] = {3, 2, 2};
     Tensor* my = tensor_zeroes(array, 3, FLOAT);
-    size_t size = tensor_get_len(my->dim, my->dim_size);
     int indices[3] = {2, 2, 1};
     float value = 1;
     void* my_int3 = &value;
@@ -515,8 +581,8 @@ int main(){
     float value3 = 5;
     void* my_int = &value3;
     tensor_set_index(my3, indices3, 3, my_int);
-    Tensor* tensor_array[3] = {my, my2, my3};
 
+    Tensor* tensor_array[3] = {my, my2, my3};
     Tensor* stack = tensor_stack(tensor_array, 3);
     printf("\n");
     float scalar = 5.0;
@@ -524,6 +590,42 @@ int main(){
     tensor_scalar_multiplication(stack, my_scalar);
     printf("\n");
     tensor_print_data(*stack);
+    */
+    int dims[2] = {3, 3};
+    Tensor* square = tensor_zeroes(dims, 2, INT);
+    int indices_1[2] = {1, 1};
+    int indices_2[2] = {1, 2};
+    int indices_3[2] = {1, 3};
+    int indices_4[2] = {2, 1};
+    int indices_5[2] = {2, 2};
+    int indices_6[2] = {2, 3};
+    int indices_7[2] = {3, 1};
+    int indices_8[2] = {3, 2};
+    int indices_9[2] = {3, 3};
+
+    int value_1 = 1;
+    void* my_int1 = &value_1;
+    int value_2 = 3;
+    void* my_int2 = &value_2;
+    int value_3 = 8;
+    void* my_int3 = &value_3;
+    int value_4 = 1;
+    void* my_int4 = &value_4;
+
+    tensor_set_index(square, indices_1, 2, my_int1);
+    tensor_set_index(square, indices_2, 2, my_int2);
+    tensor_set_index(square, indices_3, 2, my_int3);
+    tensor_set_index(square, indices_4, 2, my_int4);
+    tensor_set_index(square, indices_5, 2, my_int1);
+    tensor_set_index(square, indices_6, 2, my_int2);
+    tensor_set_index(square, indices_7, 2, my_int3);
+    tensor_set_index(square, indices_8, 2, my_int4);
+    tensor_set_index(square, indices_9, 2, my_int1);
+
+    tensor_tril(square);
+    tensor_print_data(*square);
+
+    
     /*
     int array[3] = {3, 2, 2};
     Tensor* my = tensor_zeroes(array, 3, STRING);
