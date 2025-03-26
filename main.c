@@ -273,6 +273,11 @@ Tensor* tensor_zeroes(int* dim, unsigned int dim_size, data_type d_type){
     return tensor;
 }
 
+Tensor* tensor_rand(int* dim, unsigned int dim_size, data_type d_type){
+    //i need to learn to generate pseudo-random numbers
+    return NULL;
+}
+
 int tensor_check_dimension_equality(Tensor* goal, Tensor* source){
     if(goal->dim_size != source->dim_size){
         printf("tamanho das dimensões não correspondem");
@@ -593,6 +598,7 @@ int main(){
     */
     int dims[2] = {3, 3};
     Tensor* square = tensor_zeroes(dims, 2, INT);
+    /*
     int indices_1[2] = {1, 1};
     int indices_2[2] = {1, 2};
     int indices_3[2] = {1, 3};
@@ -621,8 +627,8 @@ int main(){
     tensor_set_index(square, indices_7, 2, my_int3);
     tensor_set_index(square, indices_8, 2, my_int4);
     tensor_set_index(square, indices_9, 2, my_int1);
+    */
 
-    tensor_tril(square);
     tensor_print_data(*square);
 
     
