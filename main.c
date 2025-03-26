@@ -3,22 +3,26 @@
 #include <string.h>
 // i need to do tensors, they are a generalization of arrays (nd-array) 
 //i should use data sequentially, since they need to store a bunch of data
+
 typedef enum{
     INT,
-    FLOAT
-} DataType;
+    FLOAT, 
+    CHAR,
+    STRING
+} data_type;
 
 typedef struct{
     void* data;
-    DataType d_type;
-    unsigned int* strides;
+    data_type d_type;
     int* dim;
-    unsigned int dim_size;
+    size_t dim_size;
+    unsigned int* strides;
+    size_t data_size;
 } Tensor;
 
 void* tensor_see_index(Tensor* tensor, int* indices, int indices_size){
     if(indices_size > tensor->dim_size){
-        printf("tensor dimensional depth is %d and indices are %d.", tensor->dim_size, indices_size);
+        printf("tensor dimensional depth is %zu and indices are %d.", tensor->dim_size, indices_size);
         return 0;
     }
     int position = 0;
@@ -26,19 +30,27 @@ void* tensor_see_index(Tensor* tensor, int* indices, int indices_size){
         position += (indices[i] * tensor->strides[i]);
     }
     if(tensor->d_type == INT){
-        printf("%f\n", ((int*)tensor->data)[position]);
+        printf("%d\n", ((int*)tensor->data)[position]);
         return &((int*)tensor->data)[position];
     }
     else if(tensor->d_type == FLOAT){
-        printf("%d\n", ((float*)tensor->data)[position]);
+        printf("%f\n", ((float*)tensor->data)[position]);
         return &((float*)tensor->data)[position];
+    }
+    else if(tensor->d_type == CHAR){
+        printf("%c\n", ((char*)tensor->data)[position]);
+        return &((char*)tensor->data)[position];
+    }
+    else if(tensor->d_type == STRING){
+        printf("%s\n", ((char**)tensor->data)[position]);
+        return &((char**)tensor->data)[position];
     }
     return NULL;
 }
 
 void tensor_set_index(Tensor* tensor, int* indices, int indices_size, void* new_value){
     if(indices_size > tensor->dim_size){
-        printf("tensor dimensional depth is %d and indices are %d.", tensor->dim_size, indices_size);
+        printf("tensor dimensional depth is %zu and indices are %d.", tensor->dim_size, indices_size);
         return;
     }
     int position = 0;
@@ -48,14 +60,23 @@ void tensor_set_index(Tensor* tensor, int* indices, int indices_size, void* new_
 
     if (tensor->d_type == INT) {
         ((int*)tensor->data)[position] = *(int*)new_value;
-    } else if (tensor->d_type == FLOAT) {
+    }
+    else if (tensor->d_type == FLOAT) {
         ((float*)tensor->data)[position] = *(float*)new_value;
-    } else {
+    }
+    else if(tensor->d_type == CHAR){
+        ((char*)tensor->data)[position] = *(char*)new_value;
+    }
+    else if(tensor->d_type == STRING){
+        ((char**)tensor->data)[position] = *(char**)new_value;
+    }
+    else 
+    {
         printf("Unsupported data type.\n");
     }
 }
 
-int tensor_get_len(int* dim, unsigned int dim_size){
+size_t tensor_get_len(int* dim, unsigned int dim_size){
     unsigned int total = 1;
     for(int i = (dim_size - 1); i >= 0; i--){
         total *= dim[i];
@@ -70,14 +91,28 @@ Tensor* tensor_copy(Tensor tensor){
         return NULL;
     }
 
-    size_t data_size = (size_t)tensor_get_len(tensor.dim, tensor.dim_size);
+    size_t data_size = tensor.data_size;
     copy->data = (int*)malloc(data_size * sizeof(int));
     if(copy->data == NULL){
         printf("error allocating Tensor data.\n");
         return NULL;
     }
 
-    memcpy(copy->data, tensor.data, data_size * sizeof(int));
+    copy->data_size = data_size;
+
+    if(tensor.d_type == INT){
+        memcpy(copy->data, tensor.data, data_size * sizeof(int));
+    }
+    else if(tensor.d_type == FLOAT){
+        memcpy(copy->data, tensor.data, data_size * sizeof(float));
+    }
+    else if(tensor.d_type == CHAR){
+        memcpy(copy->data, tensor.data, data_size * sizeof(char));
+    }
+    else if(tensor.d_type == STRING){
+        memcpy(copy->data, tensor.data, data_size * sizeof(char*));
+    }
+
     copy->strides = (unsigned int*)malloc(tensor.dim_size * sizeof(unsigned int));
     if(copy->strides == NULL){
         printf("error allocating Tensor strides.\n");
@@ -91,11 +126,14 @@ Tensor* tensor_copy(Tensor tensor){
         return NULL;
     }
 
+    copy->d_type = tensor.d_type;
+
     memcpy(copy->dim, tensor.dim, tensor.dim_size * sizeof(int*));
     copy->dim_size = tensor.dim_size;
     return copy;
 }
 
+//tensor_random()
 Tensor* tensor_like(Tensor tensor){
     Tensor* copy = (Tensor*)malloc(sizeof(Tensor));
     if (copy == NULL){
@@ -103,14 +141,28 @@ Tensor* tensor_like(Tensor tensor){
         return NULL;
     }
 
-    size_t data_size = (size_t)tensor_get_len(tensor.dim, tensor.dim_size);
+    size_t data_size = tensor_get_len(tensor.dim, tensor.dim_size);
     copy->data = calloc(data_size, sizeof(int));
     if(copy->data == NULL){
         printf("error allocating Tensor data.\n");
         return NULL;
     }
 
-    memcpy(copy->data, tensor.data, data_size * sizeof(int));
+    copy->data_size = data_size;
+
+    if(tensor.d_type == INT){
+        memcpy(copy->data, tensor.data, data_size * sizeof(int));
+    }
+    else if(tensor.d_type == FLOAT){
+        memcpy(copy->data, tensor.data, data_size * sizeof(float));
+    }
+    else if(tensor.d_type == CHAR){
+        memcpy(copy->data, tensor.data, data_size * sizeof(char));
+    }
+    else if(tensor.d_type == STRING){
+        memcpy(copy->data, tensor.data, data_size * sizeof(char*));
+    }
+
     copy->strides = (unsigned int*)malloc(tensor.dim_size * sizeof(unsigned int));
     if(copy->strides == NULL){
         printf("error allocating Tensor strides.\n");
@@ -129,17 +181,42 @@ Tensor* tensor_like(Tensor tensor){
     return copy;
 }
 
+//correct this print method
+//
 void tensor_print_data(Tensor tensor){
-    int tensor_len = tensor_get_len(tensor.dim, tensor.dim_size);
+    size_t tensor_len = tensor.data_size;
+
     if (tensor.d_type == INT) {
         for(int i=0; i < tensor_len; i++){
-            printf("%d", ((int*)tensor.data)[i]);
+            printf("%d ", ((int*)tensor.data)[i]);
         }
-    } else if (tensor.d_type == FLOAT) {
+    } 
+    else if (tensor.d_type == FLOAT) {
         for(int i=0; i < tensor_len; i++){
-            printf("%f", ((float*)tensor.data)[i]);
+            printf("%f ", ((float*)tensor.data)[i]);
         }
-    } else {
+    }
+    else if (tensor.d_type == CHAR){
+        for(int i=0; i < tensor_len; i++){
+            if(((char*)tensor.data)[i] == '\0'){
+                printf("\" \", ");
+            }
+            else{
+                printf("%c ", ((char*)tensor.data)[i]);
+            }
+        }
+    }
+    else if(tensor.d_type == STRING){
+        for(int i=0; i < tensor_len; i++){
+            if(strlen(((char**)tensor.data)[i]) == 0){
+                printf("\" \", ");
+            }
+            else{
+                printf("%s, ", ((char**)tensor.data)[i]);
+            }
+        }
+    }
+    else {
         printf("Unsupported data type.\n");
     }
     printf("\n");
@@ -167,13 +244,31 @@ void tensor_calculate_strides(Tensor* tensor){
     }
 }
 
-Tensor* tensor_zeroes(int* dim, unsigned int dim_size){
+Tensor* tensor_zeroes(int* dim, unsigned int dim_size, data_type d_type){
     Tensor* tensor = (Tensor*)malloc(sizeof(Tensor));
-    unsigned int tensor_len = tensor_get_len(dim, dim_size);
-    tensor->data = calloc(tensor_len, sizeof(int));
+    size_t tensor_len = tensor_get_len(dim, dim_size);
+
+    if(d_type == INT){
+        tensor->data = calloc(tensor_len, sizeof(int));
+    }
+    else if(d_type == FLOAT){
+        tensor->data = calloc(tensor_len, sizeof(float));
+    }
+    else if(d_type == CHAR){
+        tensor->data = calloc(tensor_len, sizeof(char));
+    }
+    else if(d_type == STRING){
+        tensor->data = (char*)malloc(tensor_len * sizeof(char));
+        for(int i = 0; i < tensor_len; i++){
+            ((char**)tensor->data)[i] = "";
+        }
+    }
+
     tensor->dim = dim;
     tensor->dim_size = dim_size;
+    tensor->data_size = tensor_len;
     tensor->strides = malloc(dim_size * sizeof(int));
+    tensor->d_type = d_type;
     tensor_calculate_strides(tensor);
     return tensor;
 }
@@ -192,9 +287,16 @@ int tensor_check_dimension_equality(Tensor* goal, Tensor* source){
     return 1;
 }
 
+int tensor_check_dtype_equality(Tensor* goal, Tensor* source){
+    if(goal->d_type != source->d_type){
+        return 0;
+    }
+    return 1;
+}
+
 void tensor_elementwise_add(Tensor* goal, Tensor* source){
     if(tensor_check_dimension_equality(goal, source)){
-        int size = tensor_get_len(goal->dim, goal->dim_size);
+        size_t size =  goal->data_size;
 
         if (goal->d_type != source->d_type) {
             printf("Data type mismatch. Goal is %s and Source is %s.\n",
@@ -202,8 +304,6 @@ void tensor_elementwise_add(Tensor* goal, Tensor* source){
                    source->d_type == INT ? "INT" : "FLOAT");
             return;
         }
-    
-        int size = tensor_get_len(goal->dim, goal->dim_size);
     
         if (goal->d_type == INT) {
             int* goal_data = (int*)goal->data;
@@ -225,7 +325,7 @@ void tensor_elementwise_add(Tensor* goal, Tensor* source){
 
 void tensor_elementwise_subtract(Tensor* goal, Tensor* source){
     if(tensor_check_dimension_equality(goal, source)){
-        int size = tensor_get_len(goal->dim, goal->dim_size);
+        size_t size = goal->data_size;
 
         if (goal->d_type != source->d_type) {
             printf("Data type mismatch. Goal is %s and Source is %s.\n",
@@ -233,8 +333,6 @@ void tensor_elementwise_subtract(Tensor* goal, Tensor* source){
                    source->d_type == INT ? "INT" : "FLOAT");
             return;
         }
-    
-        int size = tensor_get_len(goal->dim, goal->dim_size);
     
         if (goal->d_type == INT) {
             int* goal_data = (int*)goal->data;
@@ -256,7 +354,7 @@ void tensor_elementwise_subtract(Tensor* goal, Tensor* source){
 
 void tensor_elementwise_multiply(Tensor* goal, Tensor* source){
     if(tensor_check_dimension_equality(goal, source)){
-        int size = tensor_get_len(goal->dim, goal->dim_size);
+        size_t size = goal->data_size;
 
         if (goal->d_type != source->d_type) {
             printf("Data type mismatch. Goal is %s and Source is %s.\n",
@@ -264,8 +362,6 @@ void tensor_elementwise_multiply(Tensor* goal, Tensor* source){
                    source->d_type == INT ? "INT" : "FLOAT");
             return;
         }
-    
-        int size = tensor_get_len(goal->dim, goal->dim_size);
     
         if (goal->d_type == INT) {
             int* goal_data = (int*)goal->data;
@@ -285,10 +381,9 @@ void tensor_elementwise_multiply(Tensor* goal, Tensor* source){
     }
 }
 
-
 void tensor_elementwise_divide(Tensor* goal, Tensor* source){
     if(tensor_check_dimension_equality(goal, source)){
-        int size = tensor_get_len(goal->dim, goal->dim_size);
+        size_t size = goal->data_size;
 
         if (goal->d_type != source->d_type) {
             printf("Data type mismatch. Goal is %s and Source is %s.\n",
@@ -296,23 +391,35 @@ void tensor_elementwise_divide(Tensor* goal, Tensor* source){
                    source->d_type == INT ? "INT" : "FLOAT");
             return;
         }
-    
-        int size = tensor_get_len(goal->dim, goal->dim_size);
-    
         if (goal->d_type == INT) {
             int* goal_data = (int*)goal->data;
             int* source_data = (int*)source->data;
             for (int i = 0; i < size; i++) {
                 goal_data[i] /= source_data[i];
-            }
+        }
         } else if (goal->d_type == FLOAT) {
             float* goal_data = (float*)goal->data;
             float* source_data = (float*)source->data;
             for (int i = 0; i < size; i++) {
                 goal_data[i] /= source_data[i];
-            }
+        }
         } else {
             printf("Unsupported data type.\n");
+        }
+    }
+}
+
+void tensor_scalar_multiplication(Tensor* tensor, void* scalar){
+    size_t data_size = tensor->data_size;
+
+    if(tensor->d_type == INT){
+        for(int i = 0; i < data_size; i++){
+            ((int*)tensor->data)[i] *= *(int*)scalar;
+        }
+    }
+    else if(tensor->d_type == FLOAT){
+        for(int i = 0; i < data_size; i++){
+            ((float*)tensor->data)[i] *= *(float*)scalar;
         }
     }
 }
@@ -323,9 +430,15 @@ Tensor* tensor_stack(Tensor** tensors, size_t tensors_quantity){
            printf("error in stacking process.");
            return NULL;
         }
+        if(tensor_check_dtype_equality(tensors[i], tensors[i+1]) == 0){
+            printf("data types dont match.");
+            return NULL;
+        }
     }
+
     size_t new_dim_size = tensors[0]->dim_size + 1;
     int* dims = (int*)malloc(new_dim_size * sizeof(int));
+
     if(dims == NULL){
         printf("error allocating Tensor dims.\n");
         return NULL;
@@ -336,15 +449,38 @@ Tensor* tensor_stack(Tensor** tensors, size_t tensors_quantity){
     int* pointer = &dims[1];
     memcpy(pointer, tensors[0]->dim, tensors[0]->dim_size * sizeof(int)); 
 
-    Tensor* return_tensor = tensor_zeroes(dims, new_dim_size);
-    size_t tensor_total_size = (size_t)tensor_get_len(tensors[0]->dim, tensors[0]->dim_size);
+    data_type type = tensors[0]->d_type;
+    Tensor* return_tensor = tensor_zeroes(dims, new_dim_size, type);
+    size_t tensor_total_size = tensors[0]->data_size;
 
-    for (int i = 0; i < tensors_quantity; i++){
-        for(int j = 0; j < tensor_total_size; j++){
-            return_tensor->data[(i * tensor_total_size) + j] = tensors[i]->data[j];
+    if(type == INT){
+        for (int i = 0; i < tensors_quantity; i++){
+            for(int j = 0; j < tensor_total_size; j++){
+                ((int*)return_tensor->data)[(i * tensor_total_size) + j] = ((int*)tensors[i]->data)[j];
+            }
         }
     }
-
+    else if(type == FLOAT){
+        for (int i = 0; i < tensors_quantity; i++){
+            for(int j = 0; j < tensor_total_size; j++){
+                ((float*)return_tensor->data)[(i * tensor_total_size) + j] = ((float*)tensors[i]->data)[j];
+            }
+        }
+    }
+    else if(type == CHAR){
+        for (int i = 0; i < tensors_quantity; i++){
+            for(int j = 0; j < tensor_total_size; j++){
+                ((char*)return_tensor->data)[(i * tensor_total_size) + j] = ((char*)tensors[i]->data)[j];
+            }
+        }
+    }
+    else if(type == STRING){
+        for (int i = 0; i < tensors_quantity; i++){
+            for(int j = 0; j < tensor_total_size; j++){
+                ((char**)return_tensor->data)[(i * tensor_total_size) + j] = ((char**)tensors[i]->data)[j];
+            }
+        }
+    }
     return return_tensor;
 }
 
@@ -363,21 +499,43 @@ int view(Tensor* tensor){
 
 int main(){ 
     int array[3] = {3, 2, 2};
-    Tensor* my = tensor_zeroes(array, 3);
+    Tensor* my = tensor_zeroes(array, 3, FLOAT);
     size_t size = tensor_get_len(my->dim, my->dim_size);
     int indices[3] = {2, 2, 1};
-    tensor_set_index(my, indices, 3, 5);
-    Tensor* my2 = tensor_zeroes(array, 3);
+    float value = 1;
+    void* my_int3 = &value;
+    tensor_set_index(my, indices, 3, my_int3);
+    Tensor* my2 = tensor_zeroes(array, 3, FLOAT);
     int indices2[3] = {1, 1, 1};
-    tensor_set_index(my2, indices2, 3, 9);
-    Tensor* my3 = tensor_zeroes(array, 3);
+    float value2 = 9;
+    void* my_int2 = &value2;
+    tensor_set_index(my2, indices2, 3, my_int2);
+    Tensor* my3 = tensor_zeroes(array, 3, FLOAT);
     int indices3[3] = {1, 2, 2};
-    tensor_set_index(my3, indices3, 3, 1);
-    tensor_print_data(*my);
-    tensor_print_data(*my2);
-    tensor_print_data(*my3);
+    float value3 = 5;
+    void* my_int = &value3;
+    tensor_set_index(my3, indices3, 3, my_int);
     Tensor* tensor_array[3] = {my, my2, my3};
 
     Tensor* stack = tensor_stack(tensor_array, 3);
-    tensor_print_data(*stack);   
+    printf("\n");
+    float scalar = 5.0;
+    void* my_scalar = &scalar;
+    tensor_scalar_multiplication(stack, my_scalar);
+    printf("\n");
+    tensor_print_data(*stack);
+    /*
+    int array[3] = {3, 2, 2};
+    Tensor* my = tensor_zeroes(array, 3, STRING);
+    char* value = "heyyy";
+    void* my_int3 = &value;
+    int indices[3] = {2, 2, 2};
+    tensor_set_index(my, indices, 3, my_int3);
+    tensor_print_data(*my);
+    char* anything = "hello, how are you";
+    */
+
+
+
 }
+
