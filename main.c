@@ -39,15 +39,15 @@ void* tensor_see_index(Tensor* tensor, int* indices, int indices_size){
         printf("%d\n", ((int*)tensor->data)[position]);
         return &((int*)tensor->data)[position];
     }
-    else if(tensor->d_type & TAG_FLOAT){
+    if(tensor->d_type & TAG_FLOAT){
         printf("%f\n", ((float*)tensor->data)[position]);
         return &((float*)tensor->data)[position];
     }
-    else if(tensor->d_type & TAG_CHAR){
+    if(tensor->d_type & TAG_CHAR){
         printf("%c\n", ((char*)tensor->data)[position]);
         return &((char*)tensor->data)[position];
     }
-    else if(tensor->d_type & TAG_STRING){
+    if(tensor->d_type & TAG_STRING){
         printf("%s\n", ((char**)tensor->data)[position]);
         return &((char**)tensor->data)[position];
     }
@@ -148,7 +148,7 @@ Tensor* tensor_like(Tensor tensor){
     }
 
     size_t data_size = tensor_get_len(tensor.dim, tensor.dim_size);
-    copy->data = calloc(data_size, sizeof(int));
+    copy->data = (int*)malloc(data_size * sizeof(int));
     if(copy->data == NULL){
         printf("error allocating Tensor data.\n");
         return NULL;
@@ -305,39 +305,7 @@ int tensor_check_dtype_equality(Tensor* goal, Tensor* source){
     return 1;
 }
 
-void tensor_operation_add(Tensor* goal, Tensor* source, size_t size, t_flag type){
-    if(type & TAG_INT){
-        ELEMENTWISE_OPERATION(goal, source, size, +, int);
-        return;
-    }
-    ELEMENTWISE_OPERATION(goal, source, size, +, float);
-}
-
-void tensor_operation_subtract(Tensor* goal, Tensor* source, size_t size, t_flag type){
-    if(type & TAG_INT){
-        ELEMENTWISE_OPERATION(goal, source, size, -, int);
-        return;
-    }
-    ELEMENTWISE_OPERATION(goal, source, size, -, float);
-}
-
-void tensor_operation_multiply(Tensor* goal, Tensor* source, size_t size, t_flag type){
-    if(type & TAG_INT){
-        ELEMENTWISE_OPERATION(goal, source, size, *, int);
-        return;
-    }
-    ELEMENTWISE_OPERATION(goal, source, size, *, float);
-}
-
-void tensor_operation_divide(Tensor* goal, Tensor* source, size_t size, t_flag type){
-    if(type & TAG_INT){
-        ELEMENTWISE_OPERATION(goal, source, size, /, int);
-        return;
-    }
-    ELEMENTWISE_OPERATION(goal, source, size, /, float);
-}
-
-void tensor_elementwise_operation(Tensor* goal, Tensor* source, void (*f)(Tensor*, Tensor*, size_t, t_flag)){
+void tensor_elementwise_operation(Tensor* goal, Tensor* source, char operation){
     if(tensor_check_dimension_equality(goal, source)){
         size_t size = goal->data_size;
 
@@ -347,9 +315,41 @@ void tensor_elementwise_operation(Tensor* goal, Tensor* source, void (*f)(Tensor
                     source->d_type == TAG_INT ? "TAG_INT" : "TAG_FLOAT");
             return;
         } 
+
         t_flag type = goal->d_type;
-        f(goal, source, size, type);
+
+        if(type & TAG_INT){
+            switch (operation)
+            {
+            case '+':
+                ELEMENTWISE_OPERATION(goal, source, size, +, int); break;
+            case '-':
+                ELEMENTWISE_OPERATION(goal, source, size, -,  int); break;
+            case '*':
+                ELEMENTWISE_OPERATION(goal, source, size, *, int); break;
+            case '/':
+                ELEMENTWISE_OPERATION(goal, source, size, /, int); break;
+            default:
+                break;
+            }
+        }
+        else{
+            switch (operation)
+            {
+            case '+':
+                ELEMENTWISE_OPERATION(goal, source, size, +, float); break;
+            case '-':
+                ELEMENTWISE_OPERATION(goal, source, size, -,  float); break;
+            case '*':
+                ELEMENTWISE_OPERATION(goal, source, size, *, float); break;
+            case '/':
+                ELEMENTWISE_OPERATION(goal, source, size, /, float); break;
+            default:
+                break;
+            }
+        }
     }
+
 }
 
 void tensor_scalar_multiplication(Tensor* tensor, void* scalar){
@@ -506,5 +506,7 @@ int view(Tensor* tensor){
     return 0;
 }
 
+int main(){
 
 
+}
