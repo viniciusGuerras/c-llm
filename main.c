@@ -134,7 +134,7 @@ Tensor* tensor_copy(Tensor tensor){
 
     copy->d_type = tensor.d_type;
 
-    memcpy(copy->dim, tensor.dim, tensor.dim_size * sizeof(int*));
+    memcpy(copy->dim, tensor.dim, tensor.dim_size * sizeof(int));
     copy->dim_size = tensor.dim_size;
     return copy;
 }
@@ -188,7 +188,6 @@ Tensor* tensor_like(Tensor tensor){
 }
 
 //correct this print method
-//
 void tensor_print_data(Tensor tensor){
     size_t tensor_len = tensor.data_size;
 
@@ -235,6 +234,7 @@ void tensor_print_strides(Tensor tensor){
     printf("\n");
 }
 
+//{5, 2, 2}
 void tensor_calculate_strides(Tensor* tensor){
     unsigned int stride_size = tensor->dim_size;
 
@@ -493,9 +493,68 @@ Tensor* tensor_stack(Tensor** tensors, size_t tensors_quantity){
     return return_tensor;
 }
 
+//add specific axis
+int tensor_max(Tensor* tensor){
+    size_t len = tensor->data_size;
+    int biggest = INT16_MIN;
+    if(tensor->d_type & TAG_INT){
+        for(int i = 0; i < len; i++){
+            if(((int*)tensor->data)[i] > biggest){
+                biggest = ((int*)tensor->data)[i];
+            }
+        }
+    }
+    if(tensor->d_type & TAG_FLOAT){
+        for(int i = 0; i < len; i++){
+            if(((float*)tensor->data)[i] > biggest){
+                biggest = ((float*)tensor->data)[i];
+            }
+        }
+
+    }
+    printf("tensor_max: %d\n", biggest);
+    return biggest;
+}
+
+//add specific axis
+int tensor_min(Tensor* tensor){
+    size_t len = tensor->data_size;
+    int smaller = INT16_MAX;
+    if(tensor->d_type & TAG_INT){
+        for(int i = 0; i < len; i++){
+            if(((int*)tensor->data)[i] < smaller){
+                smaller = ((int*)tensor->data)[i];
+            }
+        }
+    }
+    if(tensor->d_type & TAG_FLOAT){
+        for(int i = 0; i < len; i++){
+            if(((float*)tensor->data)[i] < smaller){
+                smaller = ((float*)tensor->data)[i];
+            }
+        }
+    }
+
+    printf("tensor_min: %d\n", smaller);
+    return smaller;
+}
+
+Tensor* tensor_view(int dim){
+    return NULL;
+}
+
+//where do i need to sum? which dimensions?
+int tensor_sum(Tensor* tensor, int dim[], size_t dim_size){
+    if (tensor->dim_size > dim_size)
+    {
+        printf("not dimensional enough");
+        return -1;
+    }
+    return 0;
+}
+
 //view
 //broadcasting
-//Reduction operations (sum, max, min) across specific axes.
 //Transpose or reshape functionalities.
 
 int tensor_slice(Tensor* tensor, int* indices){
@@ -507,6 +566,23 @@ int view(Tensor* tensor){
 }
 
 int main(){
-
+    int dims[2] = {2,2};
+    Tensor* tensor = tensor_zeroes(dims, 2, TAG_INT);
+    int new_value = 9;
+    void* void_n_value = &new_value;
+    int indices[2] = {1, 2};
+    tensor_set_index(tensor, indices, 2, void_n_value);
+    new_value = 2;
+    void_n_value = &new_value;
+    indices[1] = 1;
+    tensor_set_index(tensor, indices, 2, void_n_value);
+    new_value = 3;
+    void_n_value = &new_value;
+    indices[0] = 2;
+    indices[1] = 2;
+    tensor_set_index(tensor, indices, 2, void_n_value);
+    tensor_print_data(*tensor);
+    tensor_max(tensor);
+    tensor_min(tensor);
 
 }
